@@ -41,23 +41,21 @@ rule no-process-start-shell-cs {
   enabled true
   priority 95
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.cs" AND content LINE_REGEX "Process\\.Start\\s*\\(\\s*[\"']cmd"
   OR path GLOB "**/*.cs" AND content LINE_REGEX "Process\\.Start\\s*\\(\\s*[\"']/bin/bash"
   OR path GLOB "**/*.cs" AND content LINE_REGEX "UseShellExecute\\s*=\\s*true"
   MESSAGE "Process.Start with shell execution or cmd.exe/bash passes commands through the shell, enabling injection. Use ProcessStartInfo with UseShellExecute = false and explicit arguments."
-  PROMPT "Is the command string built from user input? If so, use ProcessStartInfo with UseShellExecute = false and pass arguments in ArgumentList (not Arguments string)."
 }
 
 rule no-hardcoded-connection-string {
   enabled true
   priority 90
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.cs" AND content LINE_REGEX "(connectionString|ConnectionString|connStr)\\s*=\\s*[\"'][^\"']{10,}[\"']"
   OR path GLOB "**/*.cs" AND content LINE_REGEX "Server\\s*=.*;.*Password\\s*="
   MESSAGE "Hardcoded connection strings expose database credentials in source control. Store connection strings in environment variables or a secrets manager and retrieve via IConfiguration."
-  PROMPT "Is this a real connection string or a placeholder? Store real credentials in appsettings.json (gitignored) or environment variables, not in source files."
 }
 
 rule no-ldap-injection-cs {
@@ -75,22 +73,20 @@ rule no-md5-sha1-cs {
   enabled true
   priority 80
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.cs" AND content CONTAINS "MD5.Create("
   OR path GLOB "**/*.cs" AND content CONTAINS "SHA1.Create("
   OR path GLOB "**/*.cs" AND content CONTAINS "new MD5CryptoServiceProvider"
   OR path GLOB "**/*.cs" AND content CONTAINS "new SHA1CryptoServiceProvider"
   MESSAGE "MD5 and SHA-1 are cryptographically broken and must not be used for password hashing or data integrity. Use SHA-256 or higher, and for passwords use BCrypt, PBKDF2, or Argon2."
-  PROMPT "Is MD5/SHA1 used for a security purpose (passwords, signatures, integrity checks)? If so, upgrade to SHA-256+ or BCrypt for passwords."
 }
 
 rule no-path-traversal-cs {
   enabled true
   priority 90
   severity error
-  ASK write
+  LOG write
   IF path GLOB "**/*.cs" AND content LINE_REGEX "(File\\.ReadAll|File\\.WriteAll|File\\.Open|File\\.Delete).*Request\\."
   OR path GLOB "**/*.cs" AND content LINE_REGEX "Path\\.Combine\\s*\\([^)]*Request\\."
   MESSAGE "File operations with user-controlled paths enable path traversal. Validate that Path.GetFullPath(userInput) starts with the expected base directory before performing file operations."
-  PROMPT "Is the file path validated to stay within an allowed directory? Use Path.GetFullPath and verify it starts with the expected base path."
 }
